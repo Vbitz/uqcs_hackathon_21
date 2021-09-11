@@ -1,0 +1,36 @@
+{
+  "name": "uqcs_hackathon_21",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "engines": {
+    "node": ">12"
+  },
+  "scripts": {
+    "start": "npm run compile && node build/src",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "gts lint",
+    "clean": "gts clean",
+    "compile": "tsc",
+    "fix": "gts fix",
+    "prepare": "npm run compile",
+    "pretest": "npm run compile",
+    "posttest": "npm run lint"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Vbitz/uqcs_hackathon_21.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Vbitz/uqcs_hackathon_21/issues"
+  },
+  "homepage": "https://github.com/Vbitz/uqcs_hackathon_21#readme",
+  "devDependencies": {
+    "gts": "^3.1.0",
+    "typescript": "^4.0.3",
+    "@types/node": "^14.11.2"
+  }
+}
