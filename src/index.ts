@@ -99,9 +99,11 @@ class GameState {
   }
 
   static printState(state: GameState): string {
-    return `${state.board[0].join('')}
+    return `----
+${state.board[0].join('')}
 ${state.board[1].join('')}
-${state.board[2].join('')}`;
+${state.board[2].join('')}
+----`;
   }
 
   static getNextPlayer(player: PieceState): PieceState {
@@ -183,14 +185,11 @@ ${state.board[2].join('')}`;
 
 interface CodeFunction {
   name: string;
-  printGameState(state: GameState): void;
+  printGameState(state: GameState): string;
+  callFunction(codeFunction: CodeFunction, ...args: string[]): string;
+  addStatement(s: string): void;
   getCharacterToVariable(): string;
-  callFunctionIfChar(
-    variableName: string,
-    value: string,
-    codeFunction: CodeFunction
-  ): void;
-  callFunction(codeFunction: CodeFunction): void;
+  ifChar(variableName: string, value: string, ...statements: string[]): void;
 }
 
 interface CodeGenerator {
@@ -206,38 +205,38 @@ class CCodeFunction implements CodeFunction {
 
   constructor(readonly name = `f${getRandomId()}`) {}
 
-  printGameState(state: GameState): void {
-    this.statements.push(
-      `puts(${JSON.stringify(GameState.printState(state))});`
-    );
+  printGameState(state: GameState): string {
+    return `puts(${JSON.stringify(GameState.printState(state))});`;
   }
 
   getCharacterToVariable(): string {
     const varName = `i${getRandomId()}`;
-    this.statements.push(`char ${varName} = getchar();getchar();`);
+    this.statements.push(`char ${varName} = moves[0];`);
     return varName;
   }
 
-  callFunctionIfChar(
-    variableName: string,
-    value: string,
-    codeFunction: CodeFunction
-  ) {
+  ifChar(variableName: string, value: string, ...statements: string[]) {
     this.statements.push(
-      `if (${variableName} == ${value}) ${codeFunction.name}();`
+      `if (${variableName} == ${value}) {
+        ${statements.join('\n')}
+      }`
     );
   }
 
-  callFunction(codeFunction: CodeFunction): void {
-    this.statements.push(`${codeFunction.name}();`);
+  addStatement(s: string): void {
+    this.statements.push(s);
+  }
+
+  callFunction(codeFunction: CodeFunction, ...args: string[]): string {
+    return `${codeFunction.name}(${args.join(', ')});`;
   }
 
   emitPrototype(): string {
-    return `void ${this.name}();`;
+    return `void ${this.name}(char* moves);`;
   }
 
   emitBody(): string {
-    return `void ${this.name}() {
+    return `void ${this.name}(char* moves) {
       ${this.statements.join('\n')}
     }`;
   }
@@ -306,8 +305,9 @@ class CCodeGenerator implements CodeGenerator {
     ${prototypes.join('\n')}
     ${functionBodies.join('\n')}
 
-    int main(int argc, const char *argv[]) {
-      ${this.entryPointName}();
+    int main(int argc, char *argv[]) {
+      if (argc < 2) return 1;
+      ${this.entryPointName}(argv[1]);
 
       return 0;
     }
@@ -322,7 +322,7 @@ function playState(
 ): CodeFunction {
   const stateFunction = codeGenerator.createFunction();
 
-  stateFunction.printGameState(currentState);
+  stateFunction.addStatement(stateFunction.printGameState(currentState));
 
   const varName = stateFunction.getCharacterToVariable();
 
@@ -347,14 +347,24 @@ function playState(
         GameState.getNextPlayer(currentPlayer)
       );
 
-      stateFunction.callFunctionIfChar(varName, `'${move}'`, nextTurnFunction);
+      stateFunction.ifChar(
+        varName,
+        `'${move}'`,
+        stateFunction.callFunction(nextTurnFunction, '&moves[1]')
+      );
     } else {
-      stateFunction.printGameState(nextState);
-      stateFunction.callFunctionIfChar(varName, `'${move}'`, nextFunction);
+      stateFunction.ifChar(
+        varName,
+        `'${move}'`,
+        stateFunction.printGameState(nextState),
+        stateFunction.callFunction(nextFunction)
+      );
     }
   }
 
-  stateFunction.callFunction(stateFunction);
+  stateFunction.addStatement(
+    stateFunction.callFunction(stateFunction, '&moves[1]')
+  );
 
   return stateFunction;
 }
