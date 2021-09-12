@@ -140,3 +140,4 @@ dist
 /build/
 /out
 /out.c
+/out.js
